@@ -26,6 +26,16 @@ jobs:
       - name: Pre-generate and store all lessons in KV
         run: npm run pre-generate-lessons
 
+      - name: Check lesson coverage (block deploy if <99%)
+        run: |
+          COVERAGE=$(curl -s http://localhost:8787/api/monitor/lesson-coverage | jq -r '.coverage' | tr -d '%')
+          echo "Lesson coverage: $COVERAGE%"
+          if (( $(echo "$COVERAGE < 99" | bc -l) )); then
+            echo "::error ::Lesson coverage is below 99%. Failing build."
+            exit 1
+          fi
+          echo "Lesson coverage is sufficient."
+
       - name: Publish to Cloudflare Workers
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DailyLesson.org - Learn Something New Every Day</title>
+    <meta name="description" content="365 daily lessons for every age, every day. Personalized learning for everyone.">
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <link rel="manifest" href="/manifest.json">
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo">DailyLesson.org</div>
+            <ul>
+                <li><a href="/">Home</a></li>
+                <li><a href="/calendar.html">Calendar</a></li>
+                <li><a href="/search.html">Search</a></li>
+                <li><a href="/about.html">About</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section class="hero">
+            <h1>Learn Something New Every Day</h1>
+            <p>365 personalized lessons for every age, every day of the year.</p>
+            <div class="cta-buttons">
+                <a href="/calendar.html" class="btn primary">Start Learning</a>
+                <a href="/search.html" class="btn secondary">Search Lessons</a>
+            </div>
+        </section>
+
+        <section class="features">
+            <h2>Why DailyLesson.org?</h2>
+            <div class="feature-grid">
+                <div class="feature">
+                    <h3>Universal Age Support</h3>
+                    <p>Every age from 1 to 100+ gets personalized content.</p>
+                </div>
+                <div class="feature">
+                    <h3>Offline First</h3>
+                    <p>Works without internet connection.</p>
+                </div>
+                <div class="feature">
+                    <h3>Global Access</h3>
+                    <p>Available worldwide with fast CDN delivery.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="today-lesson">
+            <h2>Today's Lesson</h2>
+            <div id="today-lesson-content">
+                <p>Loading today's lesson...</p>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 DailyLesson.org - Universal Education for Everyone</p>
+    </footer>
+
+    <script src="/assets/js/app.js"></script>
+    <script>
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js');
+        }
+    </script>
+</body>
+</html>

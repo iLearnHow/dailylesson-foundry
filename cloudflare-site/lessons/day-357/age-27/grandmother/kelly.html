@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Day 357 - Age 27 - grandmother - kelly - DailyLesson.org</title>
+    <meta name="description" content="">
+    <link rel="stylesheet" href="/assets/css/style.css">
+</head>
+<body class="lesson-page kelly-theme">
+    <header>
+        <nav>
+            <div class="logo">DailyLesson.org</div>
+            <ul>
+                <li><a href="/">Home</a></li>
+                <li><a href="/lessons/day-357/">Day 357</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section class="lesson-content">
+            <div class="lesson-header">
+                <h1>daily_lesson_357</h1>
+                <div class="lesson-meta">
+                    <span class="day">Day 357</span>
+                    <span class="age">Age 27</span>
+                    <span class="tone">grandmother</span>
+                    <span class="avatar">kelly</span>
+                </div>
+            </div>
+
+            <div class="avatar-display">
+                <img src="/assets/kelly/avatar.jpg" alt="kelly" class="avatar-image">
+            </div>
+
+            <div class="lesson-text">
+                <div class="introduction">
+                    <h2>Introduction</h2>
+                    <p></p>
+                </div>
+
+                <div class="main-content">
+                    <h2>Main Content</h2>
+                    
+                </div>
+
+                <div class="examples">
+                    <h2>Examples</h2>
+                    <ul>
+                        
+                    </ul>
+                </div>
+
+                <div class="activities">
+                    <h2>Activities</h2>
+                    <ul>
+                        
+                    </ul>
+                </div>
+
+                <div class="summary">
+                    <h2>Summary</h2>
+                    <p></p>
+                </div>
+
+                <div class="vocabulary">
+                    <h2>Key Terms</h2>
+                    <ul>
+                        
+                    </ul>
+                </div>
+            </div>
+
+            <div class="lesson-controls">
+                <button class="btn primary" onclick="playLesson()">Play Lesson</button>
+                <button class="btn secondary" onclick="switchAvatar()">Switch Avatar</button>
+                <button class="btn secondary" onclick="adjustAge()">Change Age</button>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 DailyLesson.org</p>
+    </footer>
+
+    <script src="/assets/js/app.js"></script>
+    <script>
+        // Lesson-specific JavaScript
+        function playLesson() {
+            // Implement audio/video playback
+            console.log('Playing lesson...');
+        }
+
+        function switchAvatar() {
+            const currentAvatar = 'kelly';
+            const newAvatar = currentAvatar === 'ken' ? 'kelly' : 'ken';
+            window.location.href = window.location.href.replace(currentAvatar, newAvatar);
+        }
+
+        function adjustAge() {
+            const currentAge = 27;
+            const newAge = prompt('Enter your age (1-100):', currentAge.toString());
+            if (newAge && newAge >= 1 && newAge <= 100) {
+                window.location.href = window.location.href.replace(`age-${currentAge}`, `age-${newAge}`);
+            }
+        }
+    </script>
+</body>
+</html>
