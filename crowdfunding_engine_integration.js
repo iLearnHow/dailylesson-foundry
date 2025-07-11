@@ -176,38 +176,34 @@ class CrowdfundingEngineIntegration {
     try {
       console.log(`🎤 Creating audio for ${lessonId}_${variationKey}`);
 
-      // Extract all voice text from lesson scripts
-      const fullScript = lesson.scripts
+      // Extract voice text from lesson
+      const voiceText = lesson.scripts
         .map(script => script.voice_text)
-        .join('\n\n');
+        .join(' ');
 
-      // Determine voice based on tone
-      const voiceId = this.getElevenLabsVoice(lesson.lesson_metadata.tone);
+      // Always use Kelly's voice ID for Kelly
+      const voiceId = 'cJLh37pTYdhJT0Dvnttb';
 
       // Call ElevenLabs API
       const audioResponse = await this.callElevenLabsAPI({
-        text: fullScript,
+        text: voiceText,
         voice_id: voiceId,
-        model_id: "eleven_multilingual_v2"
-      });
-
-      // Save audio file
-      const audioPath = `/generated-audio/${lessonId}/${variationKey}.mp3`;
-      await this.saveAudioFile(audioPath, audioResponse.audio);
-
-      // Update lesson record
-      await this.updateLessonVariation(lessonId, variationKey, {
-        audioPath,
-        audioStatus: 'complete',
-        audioGeneratedAt: new Date()
+        model_id: 'eleven_monolingual_v1',
+        voice_settings: {
+          stability: 0.75,
+          similarity_boost: 0.85,
+          style: 0.60,
+          use_speaker_boost: true
+        }
       });
 
       return {
         type: 'audio',
         lessonId,
         variationKey,
-        status: 'success',
-        audioPath
+        status: 'completed',
+        audioPath: audioResponse.audio,
+        avatar: 'kelly' // Track which avatar was used
       };
 
     } catch (error) {
@@ -236,17 +232,14 @@ class CrowdfundingEngineIntegration {
           timing: script.timing_notes
         }));
 
-      // Determine avatar based on tone and age
-      const avatarId = this.getHeyGenAvatar(
-        lesson.lesson_metadata.tone,
-        lesson.lesson_metadata.age_target
-      );
+      // Always use Kelly's avatar ID for Kelly
+      const avatarId = '80d67b1371b342ecaf4235e5f61491ae';
 
       // Call HeyGen API
       const videoResponse = await this.callHeyGenAPI({
         script: videoScript,
         avatar_id: avatarId,
-        background: "ken_educational_background"
+        background: "kelly_educational_background" // Updated for Kelly
       });
 
       // HeyGen is async, so we get a job ID
@@ -260,7 +253,8 @@ class CrowdfundingEngineIntegration {
         lessonId,
         variationKey,
         status: 'processing',
-        videoJobId
+        videoJobId,
+        avatar: 'kelly' // Track which avatar was used
       };
 
     } catch (error) {
@@ -412,23 +406,39 @@ class CrowdfundingEngineIntegration {
     return priority;
   }
 
-  getElevenLabsVoice(tone) {
-    const voiceMap = {
-      'grandmother': 'pNInz6obpgDQGcFmaJgB', // Warm, nurturing voice
-      'fun': 'EXAVITQu4vr4xnSDxMaL', // Energetic, enthusiastic voice  
-      'neutral': 'flq6f7yk4E4fJM5XTYuZ' // Professional, clear voice
-    };
-    return voiceMap[tone] || voiceMap['neutral'];
+  getVoiceByAvatar(avatar = 'kelly', tone) {
+    // Always return the single Kelly voice ID for Kelly
+    if (avatar === 'kelly') {
+      return 'cJLh37pTYdhJT0Dvnttb';
+    } else {
+      // Ken's voice IDs (existing)
+      const kenVoices = {
+        'grandmother': 'pNInz6obpgDQGcFmaJgB',
+        'fun': 'EXAVITQu4vr4xnSDxMaL',
+        'neutral': 'flq6f7yk4E4fJM5XTYuZ'
+      };
+      return kenVoices[tone] || kenVoices['neutral'];
+    }
   }
 
   getHeyGenAvatar(tone, age) {
-    // Select Ken avatar variation based on tone and target age
-    const avatarMap = {
-      'grandmother': 'ken_warm_nurturing',
-      'fun': 'ken_energetic_playful',
-      'neutral': 'ken_professional_clear'
-    };
-    return avatarMap[tone] || avatarMap['neutral'];
+    // Always return the single Kelly avatar ID for Kelly
+    return '80d67b1371b342ecaf4235e5f61491ae';
+  }
+
+  getAvatarByPreference(preference = 'kelly', tone, age) {
+    // Always return the single Kelly avatar ID for Kelly
+    if (preference === 'kelly') {
+      return '80d67b1371b342ecaf4235e5f61491ae';
+    } else {
+      // Ken's avatar variations (existing)
+      const kenAvatars = {
+        'grandmother': 'ken_warm_nurturing',
+        'fun': 'ken_energetic_playful',
+        'neutral': 'ken_professional_clear'
+      };
+      return kenAvatars[tone] || kenAvatars['neutral'];
+    }
   }
 
   estimateCompletionTime(productionJob) {

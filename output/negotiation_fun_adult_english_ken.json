@@ -1,0 +1,33 @@
+{
+  "lesson": {
+    "topic": "negotiation",
+    "tone": "fun",
+    "age": "adult",
+    "language": "english",
+    "scripts": [
+      {
+        "segment": "opening",
+        "voice_text": "Welcome! Today we're going to have fun learning how to negotiate like a pro. Let's get started!",
+        "timing_notes": "fun, energetic opening"
+      },
+      {
+        "segment": "question_1",
+        "voice_text": "When you negotiate, is it better to start with your highest demand, your lowest, or something in the middle?",
+        "timing_notes": "presenting choices"
+      },
+      {
+        "segment": "question_1_feedback",
+        "voice_text": "Great thinking! The best negotiators know how to anchor the conversation in their favor.",
+        "timing_notes": "positive reinforcement"
+      },
+      {
+        "segment": "fortune",
+        "voice_text": "Your daily fortune: Every negotiation is a chance to build a bridge, not a wall.",
+        "timing_notes": "fortune delivery"
+      }
+    ]
+  },
+  "video_segments": [],
+  "generated_at": "/Users/nicolette/dailylesson-foundry",
+  "avatar_used": "ken"
+}

@@ -428,3 +428,60 @@ Each fortune must feel specifically created for that lesson while using the univ
 ---
 
 This system creates engaging, educational experiences that students actively seek out for the fortune reward while ensuring consistent quality and authentic teacher presence across all subjects and topics.
+
+---
+
+## **Step-by-Step: Generate a New HeyGen API Key and Test**
+
+### 1. **Generate a New API Key**
+- Go to your HeyGen dashboard under **Subscriptions & API**.
+- In the **HeyGen API** tab, find the **API Token** section.
+- Click the **refresh/rotate** icon next to the API Token to generate a new key.
+- Click **Copy** to copy the new API key (avoid any whitespace).
+
+### 2. **Set the New API Key in Your Shell**
+Paste this in your terminal (replace `NEW_KEY_HERE` with your copied key):
+```bash
+export HEYGEN_API_KEY=NEW_KEY_HERE
+```
+
+### 3. **Verify the Key is Set**
+```bash
+echo $HEYGEN_API_KEY
+```
+You should see the new key.
+
+### 4. **Test with a Direct curl Command**
+Try the minimal test (replace with your new key and Ken’s avatar_id):
+```bash
+curl -X POST https://api.heygen.com/v2/video/generate \
+  -H "X-API-Key: $HEYGEN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "video_inputs": [{
+      "character": {
+        "type": "avatar",
+        "avatar_id": "ae16c1eb9ff44e7b8a7ca21c4cc0de02"
+      },
+      "voice": {
+        "type": "text",
+        "input_text": "This is a test of the HeyGen API."
+      }
+    }],
+    "aspect_ratio": "16:9"
+  }'
+```
+
+### 5. **If the curl command works (returns a video_id):**
+- You’re good! Re-run your Python script:
+  ```bash
+  python3 scripts/generate_kelly_lesson.py
+  ```
+
+### 6. **If the curl command still fails (“Unauthorized”):**
+- Let me know immediately. We’ll escalate to HeyGen support with all details.
+
+---
+
+**Let me know the result of the curl test with the new API key!**  
+If it works, your pipeline will work. If not, I’ll help you escalate with a full technical report.
