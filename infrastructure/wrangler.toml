@@ -1,7 +1,7 @@
 name = "ilearn-api"
 main = "api/index.ts"
-compatibility_date = "2024-01-15"
-node_compat = true
+compatibility_date = "2024-09-23"
+nodejs_compat = true
 
 [env.production]
 name = "ilearn-api-prod"

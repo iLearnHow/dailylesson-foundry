@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "export": "next build && next export"
+    "export": "next build && next export",
+    "pre-generate-lessons": "ts-node scripts/pre_generate_lessons.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.844.0",
@@ -18,11 +19,13 @@
     "dotenv": "^17.2.0",
     "hono": "^4.8.4",
     "lucide-react": "^0.525.0",
+    "micro": "^10.0.1",
     "next": "^14.2.30",
     "node-fetch": "^2.7.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "recharts": "^3.1.0"
+    "recharts": "^3.1.0",
+    "stripe": "^18.3.0"
   },
   "devDependencies": {
     "@types/node": "^24.0.13",
