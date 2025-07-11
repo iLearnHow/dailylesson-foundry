@@ -5,6 +5,7 @@ import { LessonControls } from './components/LessonControls';
 import { UserAvatarSetup } from './components/UserAvatarSetup';
 import { ProgressTracker } from './components/ProgressTracker';
 import { ILearnAPI } from './services/api';
+import { Calendar } from 'lucide-react';
 
 interface User {
   id: string;
@@ -39,6 +40,16 @@ interface Lesson {
   audio_url: string;
 }
 
+// Utility to get UTC date and day-of-year
+function getUTCDateAndDayOfYear() {
+  const now = new Date();
+  const utc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const start = new Date(Date.UTC(utc.getUTCFullYear(), 0, 0));
+  const diff = utc.getTime() - start.getTime();
+  const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
+  return { utcDate: utc, dayOfYear };
+}
+
 export default function App() {
   // State Management
   const [user, setUser] = useState<User | null>(null);
@@ -51,6 +62,7 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentSegment, setCurrentSegment] = useState(0);
+  const [selectedDay, setSelectedDay] = useState(getUTCDateAndDayOfYear().dayOfYear);
   
   const api = useRef(new ILearnAPI(process.env.REACT_APP_API_KEY!));
 
@@ -67,13 +79,14 @@ export default function App() {
     }
     
     // Load today's lesson
-    await loadTodaysLesson();
+    await loadLessonForDay();
   };
 
-  const loadTodaysLesson = async () => {
+  // Update lesson fetch to use selectedDay
+  const loadLessonForDay = async (dayOfYear = selectedDay) => {
     setIsLoading(true);
     try {
-      const lesson = await api.current.getDailyLesson(lessonSettings);
+      const lesson = await api.current.getDailyLesson({ ...lessonSettings, dayOfYear });
       setCurrentLesson(lesson);
     } catch (error) {
       console.error('Failed to load lesson:', error);
@@ -81,6 +94,18 @@ export default function App() {
       setIsLoading(false);
     }
   };
+
+  // On mount, load today's lesson by UTC
+  useEffect(() => {
+    const { dayOfYear } = getUTCDateAndDayOfYear();
+    setSelectedDay(dayOfYear);
+    loadLessonForDay(dayOfYear);
+  }, []);
+
+  // When settings or selectedDay change, reload lesson
+  useEffect(() => {
+    loadLessonForDay(selectedDay);
+  }, [lessonSettings, selectedDay]);
 
   // Real-time lesson adaptation
   const handleSettingsChange = async (newSettings: typeof lessonSettings) => {
@@ -131,6 +156,22 @@ export default function App() {
       </div>
     );
   }
+
+  // Calendar/day picker UI (simple dropdown for now)
+  const renderDayPicker = () => (
+    <div className="mb-6">
+      <label className="block text-white mb-2 font-semibold flex items-center"><Calendar className="mr-2" />Pick a Day</label>
+      <select
+        value={selectedDay}
+        onChange={e => setSelectedDay(Number(e.target.value))}
+        className="w-full p-2 rounded-lg bg-white/10 text-white border border-white/20"
+      >
+        {Array.from({ length: 366 }, (_, i) => (
+          <option key={i + 1} value={i + 1}>Day {i + 1}</option>
+        ))}
+      </select>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
@@ -186,6 +227,7 @@ export default function App() {
               
               {/* Controls Sidebar */}
               <div className="lg:col-span-1">
+                {renderDayPicker()}
                 <LessonControls
                   settings={lessonSettings}
                   onSettingsChange={handleSettingsChange}
@@ -201,7 +243,7 @@ export default function App() {
               <h2 className="text-2xl font-bold mb-4">Welcome to Your Learning Journey!</h2>
               <p className="text-blue-300 mb-6">Let's get your first lesson ready...</p>
               <button 
-                onClick={loadTodaysLesson}
+                onClick={loadLessonForDay}
                 className="bg-blue-600 hover:bg-blue-700 px-8 py-3 rounded-lg font-semibold transition-colors"
               >
                 Start Learning

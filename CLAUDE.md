@@ -3,19 +3,23 @@
 ## 🎯 **SYSTEM OVERVIEW**
 **DailyLesson Foundry** is a universal educational platform that generates personalized lessons for 6,000+ combinations (age × tone × language × 365 days) using sophisticated adaptation engines.
 
+## 🕰️ **WORLD CLOCK & TOPIC-OF-THE-DAY LOGIC**
+- **UTC as Source of Truth**: The homepage always uses UTC to determine "today"—never local system time.
+- **Curriculum Sync**: The UTC day-of-year is mapped to the correct topic using the curriculum/daily topics system.
+- **Calendar/Day/Topic Picker**: Students can pick any day to explore its lesson, but by default, the homepage shows the correct topic for today (no negotiation default).
+- **Robust to Time Zones**: Handles DST, leap years, and all edge cases using IANA time zone data and best practices from `world_clock_guide.md`.
+
 ## 🏗️ **ARCHITECTURE**
 
 ### **Frontend (Next.js)**
-- **Location**: `pages/universal-lesson.js` - Main lesson interface with sliders
-- **Build Output**: `./out` directory (static export)
+- **Location**: `components/lesson-player/App.tsx` - Main lesson interface with age, tone, language, and day/topic controls
+- **Homepage**: Always displays today's topic (synced to UTC), with a calendar/day picker for exploration
 - **Deployment**: Cloudflare Pages → `mynextlesson.com`
-- **Key Features**: Age/tone/language sliders, real-time lesson generation
 
 ### **Backend (Cloudflare Workers)**
 - **Location**: `api/index.ts` - Main API with Hono framework
-- **Orchestrator**: `api/simple-orchestrator.ts` - Lesson generation engine
-- **Deployment**: Cloudflare Workers → `ilearn-api.nicoletterankin.workers.dev`
-- **Key Endpoint**: `/v1/test-acoustics?age=25&tone=fun&language=english`
+- **Curriculum Loader**: `api/curriculum-loader.ts` - Maps day-of-year to topic
+- **Key Endpoint**: `/v1/daily-lesson?age=25&tone=fun&language=english&dayOfYear=192`
 
 ## 🔧 **CORE ENGINES**
 
@@ -92,10 +96,11 @@ npm run build
 
 ### **✅ Working**
 - Real lesson generation with age/tone/language adaptation
+- World clock-synced, topic-of-the-day homepage
+- Calendar/day/topic picker for lesson exploration
 - Cloudflare Workers API live and serving lessons
 - Cloudflare Pages frontend deployed
 - GitHub Actions automation configured
-- July 11 acoustics lesson fully implemented
 
 ### **🔄 Ready for Expansion**
 - 365-day curriculum system
@@ -166,5 +171,5 @@ curl http://localhost:8787/v1/test-acoustics?age=25&tone=fun&language=english
 ---
 
 **Last Updated**: July 11, 2025  
-**System Version**: 1.0.0  
+**System Version**: 1.1.0  
 **Status**: Production Ready ✅ 
