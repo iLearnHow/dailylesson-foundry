@@ -1,0 +1,44 @@
+name = "ilearn-api"
+main = "api/index.ts"
+compatibility_date = "2024-01-15"
+node_compat = true
+
+[env.production]
+name = "ilearn-api-prod"
+route = { pattern = "api.ilearn.how/*", zone_name = "ilearn.how" }
+
+[env.staging]
+name = "ilearn-api-staging"
+route = { pattern = "staging-api.ilearn.how/*", zone_name = "ilearn.how" }
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "ilearn-production"
+database_id = "your-d1-database-id"
+
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "ilearn-staging"
+database_id = "your-d1-staging-id"
+
+[[env.production.kv_namespaces]]
+binding = "KV"
+namespace_id = "your-kv-namespace-id"
+
+[[env.production.r2_buckets]]
+binding = "R2"
+bucket_name = "ilearn-media-production"
+
+[[env.production.queues]]
+binding = "WEBHOOK_QUEUE"
+queue = "video-generation-queue"
+
+[[env.production.queues]]
+binding = "ANALYTICS_QUEUE"
+queue = "analytics-processing-queue"
+
+[env.production.vars]
+ENVIRONMENT = "production"
+API_VERSION = "1.0.0"
+LOG_LEVEL = "info"
+CORS_ORIGINS = "https://dailylesson.org,https://mynextlesson.org,https://ilearn.how" 

@@ -1,0 +1,88 @@
+name = "ilearn-api"
+main = "api/index.ts"
+compatibility_date = "2024-01-15"
+compatibility_flags = ["nodejs_compat"]
+
+# Development environment (default)
+[env.development]
+name = "ilearn-api-dev"
+
+# Production environment
+[env.production]
+name = "ilearn-api-prod"
+route = { pattern = "api.ilearn.how/*", zone_name = "ilearn.how" }
+
+# Staging environment
+[env.staging]
+name = "ilearn-api-staging"
+route = { pattern = "staging-api.ilearn.how/*", zone_name = "ilearn.how" }
+
+# Development database (mock)
+[[env.development.d1_databases]]
+binding = "DB"
+database_name = "ilearn-development"
+database_id = "mock-database-id"
+
+# Development KV (mock)
+[[env.development.kv_namespaces]]
+binding = "KV"
+namespace_id = "mock-kv-namespace-id"
+
+# Development R2 (mock)
+[[env.development.r2_buckets]]
+binding = "R2"
+bucket_name = "ilearn-media-development"
+
+# Development queues (mock)
+[[env.development.queues]]
+binding = "WEBHOOK_QUEUE"
+queue = "video-generation-queue-dev"
+
+[[env.development.queues]]
+binding = "ANALYTICS_QUEUE"
+queue = "analytics-processing-queue-dev"
+
+# Development variables
+[env.development.vars]
+ENVIRONMENT = "development"
+API_VERSION = "1.0.0"
+LOG_LEVEL = "debug"
+CORS_ORIGINS = "http://localhost:3000,http://localhost:8787"
+
+# Production database
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "ilearn-production"
+database_id = "your-d1-database-id"
+
+# Staging database
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "ilearn-staging"
+database_id = "your-d1-staging-id"
+
+# Production KV
+[[env.production.kv_namespaces]]
+binding = "KV"
+namespace_id = "your-kv-namespace-id"
+
+# Production R2
+[[env.production.r2_buckets]]
+binding = "R2"
+bucket_name = "ilearn-media-production"
+
+# Production queues
+[[env.production.queues]]
+binding = "WEBHOOK_QUEUE"
+queue = "video-generation-queue"
+
+[[env.production.queues]]
+binding = "ANALYTICS_QUEUE"
+queue = "analytics-processing-queue"
+
+# Production variables
+[env.production.vars]
+ENVIRONMENT = "production"
+API_VERSION = "1.0.0"
+LOG_LEVEL = "info"
+CORS_ORIGINS = "https://dailylesson.org,https://mynextlesson.org,https://ilearn.how" 
