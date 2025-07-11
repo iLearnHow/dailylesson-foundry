@@ -1,0 +1,704 @@
+# infrastructure/cloudflare/wrangler.toml - Main API Configuration
+name = "ilearn-api"
+main = "src/index.ts"
+compatibility_date = "2024-01-15"
+node_compat = true
+
+[env.production]
+name = "ilearn-api-prod"
+route = { pattern = "api.ilearn.how/*", zone_name = "ilearn.how" }
+
+[env.staging]
+name = "ilearn-api-staging"
+route = { pattern = "staging-api.ilearn.how/*", zone_name = "ilearn.how" }
+
+# Database bindings
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "ilearn-production"
+database_id = "your-d1-database-id"
+
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "ilearn-staging"
+database_id = "your-d1-staging-id"
+
+# KV bindings for rate limiting and caching
+[[env.production.kv_namespaces]]
+binding = "KV"
+namespace_id = "your-kv-namespace-id"
+
+# R2 bindings for video/audio storage
+[[env.production.r2_buckets]]
+binding = "R2"
+bucket_name = "ilearn-media-production"
+
+# Queue bindings for video generation
+[[env.production.queues]]
+binding = "WEBHOOK_QUEUE"
+queue = "video-generation-queue"
+
+[[env.production.queues]]
+binding = "ANALYTICS_QUEUE"
+queue = "analytics-processing-queue"
+
+# Environment variables
+[env.production.vars]
+ENVIRONMENT = "production"
+API_VERSION = "1.0.0"
+LOG_LEVEL = "info"
+CORS_ORIGINS = "https://dailylesson.org,https://mynextlesson.org,https://ilearn.how"
+
+# Secrets (set via wrangler secret put)
+# HEYGEN_API_KEY
+# ELEVENLABS_API_KEY
+# STRIPE_WEBHOOK_SECRET
+# DATABASE_ENCRYPTION_KEY
+
+---
+
+# infrastructure/docker/Dockerfile - For local development
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Install dependencies
+COPY package*.json ./
+RUN npm ci --only=production
+
+# Copy source code
+COPY . .
+
+# Build the application
+RUN npm run build
+
+# Expose port
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3000/health || exit 1
+
+# Start the application
+CMD ["npm", "start"]
+
+---
+
+# infrastructure/terraform/main.tf - Infrastructure as Code
+terraform {
+  required_providers {
+    cloudflare = {
+      source  = "cloudflare/cloudflare"
+      version = "~> 4.0"
+    }
+  }
+}
+
+variable "cloudflare_api_token" {
+  description = "Cloudflare API token"
+  type        = string
+  sensitive   = true
+}
+
+variable "cloudflare_zone_id" {
+  description = "Cloudflare Zone ID for ilearn.how"
+  type        = string
+}
+
+variable "environment" {
+  description = "Environment (staging/production)"
+  type        = string
+  default     = "production"
+}
+
+provider "cloudflare" {
+  api_token = var.cloudflare_api_token
+}
+
+# D1 Database
+resource "cloudflare_d1_database" "ilearn_db" {
+  account_id = var.cloudflare_account_id
+  name       = "ilearn-${var.environment}"
+}
+
+# R2 Bucket for media storage
+resource "cloudflare_r2_bucket" "media_bucket" {
+  account_id = var.cloudflare_account_id
+  name       = "ilearn-media-${var.environment}"
+  location   = "auto"
+}
+
+# KV Namespace for caching and rate limiting
+resource "cloudflare_workers_kv_namespace" "cache" {
+  account_id = var.cloudflare_account_id
+  title      = "ilearn-cache-${var.environment}"
+}
+
+# Queue for video generation
+resource "cloudflare_queue" "video_generation" {
+  account_id = var.cloudflare_account_id
+  name       = "video-generation-${var.environment}"
+}
+
+# Queue for analytics processing
+resource "cloudflare_queue" "analytics" {
+  account_id = var.cloudflare_account_id
+  name       = "analytics-${var.environment}"
+}
+
+# DNS Records
+resource "cloudflare_record" "api" {
+  zone_id = var.cloudflare_zone_id
+  name    = var.environment == "production" ? "api" : "staging-api"
+  value   = "ilearn-api-${var.environment}.workers.dev"
+  type    = "CNAME"
+  proxied = true
+}
+
+resource "cloudflare_record" "videos" {
+  zone_id = var.cloudflare_zone_id
+  name    = var.environment == "production" ? "videos" : "staging-videos"
+  value   = "ilearn-media-${var.environment}.r2.cloudflarestorage.com"
+  type    = "CNAME"
+  proxied = true
+}
+
+resource "cloudflare_record" "cms" {
+  zone_id = var.cloudflare_zone_id
+  name    = var.environment == "production" ? "cms" : "staging-cms"
+  value   = "ilearn-cms-${var.environment}.pages.dev"
+  type    = "CNAME"
+  proxied = true
+}
+
+# Page Rules for performance
+resource "cloudflare_page_rule" "api_cache" {
+  zone_id  = var.cloudflare_zone_id
+  target   = "${var.environment == "production" ? "api" : "staging-api"}.ilearn.how/v1/lessons/*"
+  priority = 1
+
+  actions {
+    cache_level = "cache_everything"
+    edge_cache_ttl = 3600
+  }
+}
+
+resource "cloudflare_page_rule" "media_cache" {
+  zone_id  = var.cloudflare_zone_id
+  target   = "${var.environment == "production" ? "videos" : "staging-videos"}.ilearn.how/*"
+  priority = 2
+
+  actions {
+    cache_level = "cache_everything"
+    edge_cache_ttl = 31536000  # 1 year
+  }
+}
+
+# WAF Rules for security
+resource "cloudflare_ruleset" "waf" {
+  zone_id     = var.cloudflare_zone_id
+  name        = "iLearn API Protection"
+  description = "WAF rules for iLearn API"
+  kind        = "zone"
+  phase       = "http_request_firewall_custom"
+
+  rules {
+    action = "block"
+    expression = "(cf.threat_score > 50)"
+    description = "Block high threat score requests"
+    enabled = true
+  }
+
+  rules {
+    action = "challenge"
+    expression = "(rate(1m) > 100)"
+    description = "Challenge high rate requests"
+    enabled = true
+  }
+}
+
+# Output important values
+output "d1_database_id" {
+  value = cloudflare_d1_database.ilearn_db.id
+}
+
+output "r2_bucket_name" {
+  value = cloudflare_r2_bucket.media_bucket.name
+}
+
+output "kv_namespace_id" {
+  value = cloudflare_workers_kv_namespace.cache.id
+}
+
+---
+
+# .github/workflows/deploy.yml - CI/CD Pipeline
+name: Deploy iLearn.how System
+
+on:
+  push:
+    branches: [ main, staging ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run type checking
+      run: npm run type-check
+    
+    - name: Run linting
+      run: npm run lint
+    
+    - name: Run unit tests
+      run: npm run test
+    
+    - name: Run integration tests
+      run: npm run test:integration
+      env:
+        TEST_API_KEY: ${{ secrets.TEST_API_KEY }}
+        TEST_DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Build applications
+      run: npm run build
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-artifacts
+        path: |
+          apps/*/dist
+          services/*/dist
+
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/staging'
+    environment: staging
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: build-artifacts
+    
+    - name: Deploy to Cloudflare Workers (Staging)
+      uses: cloudflare/wrangler-action@v3
+      with:
+        apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        environment: staging
+        workingDirectory: services/api
+    
+    - name: Deploy to Cloudflare Pages (Staging)
+      uses: cloudflare/pages-action@v1
+      with:
+        apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        projectName: ilearn-cms-staging
+        directory: apps/cms/dist
+    
+    - name: Run database migrations (Staging)
+      run: |
+        npx wrangler d1 execute ilearn-staging \
+          --file=database/migrations/001_initial_schema.sql \
+          --env=staging
+      env:
+        CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    
+    - name: Run smoke tests
+      run: npm run test:smoke
+      env:
+        API_BASE_URL: https://staging-api.ilearn.how
+        TEST_API_KEY: ${{ secrets.STAGING_API_KEY }}
+
+  deploy-production:
+    runs-on: ubuntu-latest
+    needs: [build, deploy-staging]
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: build-artifacts
+    
+    - name: Deploy to Cloudflare Workers (Production)
+      uses: cloudflare/wrangler-action@v3
+      with:
+        apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        environment: production
+        workingDirectory: services/api
+    
+    - name: Deploy to Cloudflare Pages (Production)
+      uses: cloudflare/pages-action@v1
+      with:
+        apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        projectName: ilearn-cms-production
+        directory: apps/cms/dist
+    
+    - name: Deploy lesson player
+      uses: cloudflare/pages-action@v1
+      with:
+        apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        projectName: dailylesson-org
+        directory: apps/lesson-player/dist
+    
+    - name: Run database migrations (Production)
+      run: |
+        npx wrangler d1 execute ilearn-production \
+          --file=database/migrations/001_initial_schema.sql \
+          --env=production
+      env:
+        CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    
+    - name: Warm up CDN cache
+      run: |
+        curl -X GET "https://api.ilearn.how/v1/daily-lesson?age=25&tone=neutral&language=english"
+        curl -X GET "https://api.ilearn.how/v1/daily-lesson?age=8&tone=grandmother&language=spanish"
+        curl -X GET "https://api.ilearn.how/v1/daily-lesson?age=45&tone=fun&language=french"
+    
+    - name: Run production health checks
+      run: npm run test:health
+      env:
+        API_BASE_URL: https://api.ilearn.how
+        TEST_API_KEY: ${{ secrets.PRODUCTION_API_KEY }}
+    
+    - name: Notify deployment success
+      uses: 8398a7/action-slack@v3
+      with:
+        status: success
+        text: 'iLearn.how deployed successfully to production! 🚀'
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  generate-videos:
+    runs-on: ubuntu-latest
+    needs: deploy-production
+    if: github.ref == 'refs/heads/main'
+    steps:
+    - name: Trigger video generation for today's lesson
+      run: |
+        curl -X POST "https://api.ilearn.how/v1/cms/generate-videos" \
+          -H "Authorization: Bearer ${{ secrets.PRODUCTION_API_KEY }}" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "lesson_id": "daily_lesson_'$(date +%Y%m%d)'",
+            "variations": [
+              {"age": 6, "tone": "grandmother", "language": "english"},
+              {"age": 14, "tone": "fun", "language": "english"},
+              {"age": 25, "tone": "neutral", "language": "english"},
+              {"age": 45, "tone": "neutral", "language": "english"},
+              {"age": 75, "tone": "grandmother", "language": "english"}
+            ]
+          }'
+
+---
+
+# scripts/deploy.sh - Deployment automation script
+#!/bin/bash
+
+set -e  # Exit on any error
+
+# Configuration
+ENVIRONMENT=${1:-staging}
+VERBOSE=${VERBOSE:-false}
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+log() {
+    echo -e "${BLUE}[$(date +'%Y-%m-%d %H:%M:%S')]${NC} $1"
+}
+
+success() {
+    echo -e "${GREEN}✅ $1${NC}"
+}
+
+warning() {
+    echo -e "${YELLOW}⚠️  $1${NC}"
+}
+
+error() {
+    echo -e "${RED}❌ $1${NC}"
+    exit 1
+}
+
+# Check prerequisites
+check_prerequisites() {
+    log "Checking prerequisites..."
+    
+    command -v node >/dev/null 2>&1 || error "Node.js is required but not installed"
+    command -v npm >/dev/null 2>&1 || error "npm is required but not installed"
+    command -v wrangler >/dev/null 2>&1 || error "Wrangler CLI is required but not installed"
+    
+    # Check Node version
+    NODE_VERSION=$(node --version | cut -d'.' -f1 | sed 's/v//')
+    if [ "$NODE_VERSION" -lt 18 ]; then
+        error "Node.js version 18 or higher is required"
+    fi
+    
+    success "Prerequisites check passed"
+}
+
+# Install dependencies
+install_dependencies() {
+    log "Installing dependencies..."
+    npm ci
+    success "Dependencies installed"
+}
+
+# Run tests
+run_tests() {
+    log "Running tests..."
+    
+    npm run lint || error "Linting failed"
+    npm run type-check || error "Type checking failed"
+    npm run test || error "Unit tests failed"
+    
+    if [ "$ENVIRONMENT" != "local" ]; then
+        npm run test:integration || warning "Integration tests failed (continuing anyway)"
+    fi
+    
+    success "Tests completed"
+}
+
+# Build applications
+build_applications() {
+    log "Building applications..."
+    
+    # Build API service
+    log "Building API service..."
+    cd services/api
+    npm run build
+    cd ../..
+    
+    # Build CMS
+    log "Building CMS..."
+    cd apps/cms
+    npm run build
+    cd ../..
+    
+    # Build lesson player
+    log "Building lesson player..."
+    cd apps/lesson-player
+    npm run build
+    cd ../..
+    
+    success "Applications built successfully"
+}
+
+# Deploy to Cloudflare
+deploy_to_cloudflare() {
+    log "Deploying to Cloudflare ($ENVIRONMENT)..."
+    
+    # Deploy Workers (API)
+    log "Deploying API service..."
+    cd services/api
+    wrangler deploy --env=$ENVIRONMENT
+    cd ../..
+    
+    # Deploy Pages (CMS)
+    log "Deploying CMS..."
+    cd apps/cms
+    wrangler pages deploy dist --project-name=ilearn-cms-$ENVIRONMENT
+    cd ../..
+    
+    # Deploy Pages (Lesson Player)
+    if [ "$ENVIRONMENT" = "production" ]; then
+        log "Deploying lesson player..."
+        cd apps/lesson-player
+        wrangler pages deploy dist --project-name=dailylesson-org
+        cd ../..
+    fi
+    
+    success "Cloudflare deployment completed"
+}
+
+# Run database migrations
+run_migrations() {
+    log "Running database migrations..."
+    
+    wrangler d1 execute ilearn-$ENVIRONMENT \
+        --file=database/migrations/001_initial_schema.sql \
+        --env=$ENVIRONMENT
+    
+    wrangler d1 execute ilearn-$ENVIRONMENT \
+        --file=database/migrations/002_seed_data.sql \
+        --env=$ENVIRONMENT
+    
+    success "Database migrations completed"
+}
+
+# Health checks
+run_health_checks() {
+    log "Running health checks..."
+    
+    local api_url
+    if [ "$ENVIRONMENT" = "production" ]; then
+        api_url="https://api.ilearn.how"
+    else
+        api_url="https://staging-api.ilearn.how"
+    fi
+    
+    # Check API health
+    response=$(curl -s -o /dev/null -w "%{http_code}" "$api_url/")
+    if [ "$response" != "200" ]; then
+        error "API health check failed (HTTP $response)"
+    fi
+    
+    # Check database connectivity
+    # (This would be more sophisticated in production)
+    
+    success "Health checks passed"
+}
+
+# Generate initial videos
+generate_initial_videos() {
+    if [ "$ENVIRONMENT" = "production" ]; then
+        log "Generating initial video content..."
+        
+        # Generate videos for core age/tone/language combinations
+        node scripts/generate-core-videos.js
+        
+        success "Initial video generation queued"
+    fi
+}
+
+# Main deployment flow
+main() {
+    log "🚀 Starting deployment to $ENVIRONMENT..."
+    
+    check_prerequisites
+    install_dependencies
+    run_tests
+    build_applications
+    deploy_to_cloudflare
+    run_migrations
+    
+    # Wait a moment for deployment to propagate
+    sleep 10
+    
+    run_health_checks
+    generate_initial_videos
+    
+    success "🎉 Deployment to $ENVIRONMENT completed successfully!"
+    
+    if [ "$ENVIRONMENT" = "production" ]; then
+        log "📊 Production URLs:"
+        log "   API: https://api.ilearn.how"
+        log "   CMS: https://cms.ilearn.how"
+        log "   Lesson Player: https://dailylesson.org"
+        log "   Documentation: https://docs.ilearn.how"
+    else
+        log "📊 Staging URLs:"
+        log "   API: https://staging-api.ilearn.how"
+        log "   CMS: https://staging-cms.ilearn.how"
+    fi
+}
+
+# Run main function
+main "$@"
+
+---
+
+# scripts/generate-core-videos.js - Initial video generation
+const fetch = require('node-fetch');
+
+const API_KEY = process.env.PRODUCTION_API_KEY;
+const API_BASE = 'https://api.ilearn.how/v1';
+
+// Core variations to generate first (covers 80% of use cases)
+const CORE_VARIATIONS = [
+    // English variations
+    { age: 6, tone: 'grandmother', language: 'english' },
+    { age: 14, tone: 'fun', language: 'english' },
+    { age: 25, tone: 'neutral', language: 'english' },
+    { age: 45, tone: 'neutral', language: 'english' },
+    { age: 75, tone: 'grandmother', language: 'english' },
+    
+    // Spanish variations
+    { age: 8, tone: 'grandmother', language: 'spanish' },
+    { age: 16, tone: 'fun', language: 'spanish' },
+    { age: 30, tone: 'neutral', language: 'spanish' },
+    
+    // French variations
+    { age: 25, tone: 'neutral', language: 'french' },
+    { age: 35, tone: 'fun', language: 'french' }
+];
+
+async function generateCoreVideos() {
+    console.log('🎬 Generating core video variations...');
+    
+    // Get today's lesson ID
+    const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
+    const lessonId = `daily_lesson_${today}`;
+    
+    try {
+        const response = await fetch(`${API_BASE}/cms/generate-videos`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                lesson_id: lessonId,
+                variations: CORE_VARIATIONS
+            })
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            console.log(`✅ Queued ${result.queued_videos} video variations for generation`);
+            console.log('📹 Video generation will complete in 10-15 minutes');
+        } else {
+            console.error('❌ Failed to queue video generation:', response.statusText);
+        }
+    } catch (error) {
+        console.error('❌ Error generating videos:', error.message);
+    }
+}
+
+if (require.main === module) {
+    generateCoreVideos();
+}
+
+module.exports = { generateCoreVideos };

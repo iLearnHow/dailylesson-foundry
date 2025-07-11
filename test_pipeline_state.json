@@ -1,0 +1,39 @@
+{
+  "completed": [],
+  "failed": [
+    [
+      "test_ken_001",
+      {
+        "error": "API Error: 401 UNAUTHORIZED",
+        "timestamp": "2025-07-11T03:33:07.922Z",
+        "lesson": {
+          "id": "test_ken_001",
+          "avatar": "ken",
+          "script": "Welcome! I'm Ken, and this is a test of our video generation system.",
+          "title": "Ken Test Lesson"
+        }
+      }
+    ],
+    [
+      "test_kelly_001",
+      {
+        "error": "API Error: 401 UNAUTHORIZED",
+        "timestamp": "2025-07-11T03:33:07.938Z",
+        "lesson": {
+          "id": "test_kelly_001",
+          "avatar": "kelly",
+          "script": "Hello! I'm Kelly, your universal teacher. This is a test of our video pipeline.",
+          "title": "Kelly Test Lesson"
+        }
+      }
+    ]
+  ],
+  "stats": {
+    "total": 2,
+    "completed": 0,
+    "failed": 2,
+    "retries": 4,
+    "startTime": "2025-07-11T03:32:58.072Z",
+    "lastSave": "2025-07-11T03:33:07.938Z"
+  }
+}
