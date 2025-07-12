@@ -1,5 +1,6 @@
 // Simple ESM-compatible orchestrator for Cloudflare Workers
 export class SimpleOrchestrator {
+  private cache: Map<string, any>; // Added property declaration
   constructor() {
     this.cache = new Map();
   }
