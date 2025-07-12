@@ -16,7 +16,11 @@
     "@cloudflare/workers-types": "^4.20250711.0",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
+    "compression": "^1.8.0",
+    "cors": "^2.8.5",
     "dotenv": "^17.2.0",
+    "express": "^5.1.0",
+    "helmet": "^8.1.0",
     "hono": "^4.8.4",
     "lucide-react": "^0.525.0",
     "micro": "^10.0.1",
@@ -28,6 +32,10 @@
     "stripe": "^18.3.0"
   },
   "devDependencies": {
+    "@types/compression": "^1.8.1",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/helmet": "^0.0.48",
     "@types/node": "^24.0.13",
     "autoprefixer": "^10.4.0",
     "eslint": "^8.0.0",
