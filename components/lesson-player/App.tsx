@@ -63,6 +63,7 @@ export default function App() {
   const [progress, setProgress] = useState(0);
   const [currentSegment, setCurrentSegment] = useState(0);
   const [selectedDay, setSelectedDay] = useState(getUTCDateAndDayOfYear().dayOfYear);
+  const [fallback, setFallback] = useState(null);
   
   const api = useRef(new ILearnAPI(process.env.REACT_APP_API_KEY!));
 
@@ -87,9 +88,26 @@ export default function App() {
     setIsLoading(true);
     try {
       const lesson = await api.current.getDailyLesson({ ...lessonSettings, dayOfYear });
-      setCurrentLesson(lesson);
-    } catch (error) {
-      console.error('Failed to load lesson:', error);
+      if (!lesson || lesson.scripts.length < 10 || /TODO|error|truncated/i.test(lesson.scripts[0].voice_text)) {
+        setFallback({
+          message: `Oops! We couldn’t find the lesson for your exact choices (age: ${lessonSettings.age}, tone: ${lessonSettings.tone}, language: ${lessonSettings.language}) today.`,
+          explanation: `Why? Sometimes, computers need to pre-generate lots of lesson versions, and occasionally one might be missing or still loading.\nWhat does this mean? You’re helping us make the system better!\nWhat can you do? Try a different age, tone, or language—or check back soon.`,
+          show: true
+        });
+        // Optionally log fallback event for monitoring
+        fetch('/api/monitor/log-fallback', { method: 'POST', body: JSON.stringify({ age: lessonSettings.age, tone: lessonSettings.tone, language: lessonSettings.language, date: new Date().toISOString().slice(0, 10) }) });
+        return;
+      } else {
+        setFallback(null);
+        setCurrentLesson(lesson);
+      }
+    } catch (e) {
+      setFallback({
+        message: `We hit a snag loading your lesson.`,
+        explanation: `This can happen if the lesson data is missing or the network is slow. Computers sometimes need a little help! Try again, or pick a different option.`,
+        show: true
+      });
+      fetch('/api/monitor/log-fallback', { method: 'POST', body: JSON.stringify({ age: lessonSettings.age, tone: lessonSettings.tone, language: lessonSettings.language, date: new Date().toISOString().slice(0, 10), error: e.message }) });
     } finally {
       setIsLoading(false);
     }
@@ -249,6 +267,14 @@ export default function App() {
                 Start Learning
               </button>
             </div>
+          </div>
+        )}
+        {fallback && fallback.show && (
+          <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 my-4">
+            <div className="font-bold mb-2">{fallback.message}</div>
+            <div className="mb-2 whitespace-pre-line">{fallback.explanation}</div>
+            <button onClick={() => window.location.reload()} className="bg-blue-500 text-white px-4 py-2 rounded mr-2">Try Again</button>
+            <a href="/learn-more-about-lessons" className="underline text-blue-700">Learn more</a>
           </div>
         )}
       </main>

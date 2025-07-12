@@ -173,3 +173,33 @@ curl http://localhost:8787/v1/test-acoustics?age=25&tone=fun&language=english
 **Last Updated**: July 11, 2025  
 **System Version**: 1.1.0  
 **Status**: Production Ready ✅ 
+
+# System Documentation Update (July 2025)
+
+## CI/CD Lesson Coverage Check
+- After pre-generation, the CI/CD pipeline calls `/api/monitor/lesson-coverage`.
+- If lesson coverage is below 99%, the build fails and deployment is blocked.
+- This ensures only high-quality, fully-covered lesson sets are deployed.
+
+## Admin Dashboard (`/admin/monitor`)
+- Password protected (password: `abl`).
+- Visualizes lesson coverage, missing/low-quality lessons, and fallback events.
+- Allows CSV/JSON export of all logs for further analysis.
+
+## Fallback Logging
+- All lesson fetch failures or low-quality results are logged via `/api/monitor/log-fallback`.
+- Fallback logs are viewable and exportable from the admin dashboard.
+
+## Learn More Page (`/learn-more-about-lessons`)
+- Password protected (password: `abl`).
+- Student-friendly and technical: explains lesson generation, preloading, fallback, and how students help improve the system.
+- Links to public APIs for transparency and learning.
+
+## Consistency Checks
+- Ensure lesson generation, pre-generation, and monitoring logic use the same age, tone, and language options.
+- Ensure all endpoints and scripts use the same key naming and data structure for lessons.
+- Monitor for any mismatches between what is generated, what is stored, and what is checked by monitoring endpoints.
+
+---
+
+**Next: Reviewing the codebase for inconsistencies between lesson generation, pre-generation, and monitoring logic.** 

@@ -1,0 +1,4 @@
+# Redirects for DailyLesson.org
+/api/* /api/:splat 200
+/lessons/* /lessons/:splat 200
+/* /index.html 200

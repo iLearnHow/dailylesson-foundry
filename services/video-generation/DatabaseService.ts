@@ -47,7 +47,7 @@ export class DatabaseService {
 
   async updateLessonVideo(lessonId: string, videoUrl: string) {
     if (this.kv) {
-      const lesson = await this.getLesson(lessonId);
+      const lesson = await this.getLesson(lessonId) as any;
       if (lesson) {
         lesson.video_url = videoUrl;
         await this.saveLesson(lesson);

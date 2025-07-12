@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Play, Pause, Settings, User, Users, Zap, BookOpen, Brain, Heart, Star } from 'lucide-react';
+import Link from 'next/link';
 
 // Import real curriculum data
 const CURRICULUM_DATA = {
@@ -352,6 +353,62 @@ const AdvancedLessonGenerator = () => {
     };
   };
 
+  const fetchLesson = async () => {
+    setIsGenerating(true);
+    
+    try {
+      // Use the deployed Cloudflare Worker API URL
+      const apiBaseUrl = 'https://ilearn-api.nicoletterankin.workers.dev';
+      
+      const response = await fetch(
+        `${apiBaseUrl}/v1/daily-lesson?age=${selectedAge}&tone=${selectedTone}&language=${selectedLanguage}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error.message || 'Failed to generate lesson');
+      }
+
+      setGeneratedContent(data.lesson);
+      
+    } catch (err) {
+      console.error('Error fetching lesson:', err);
+      
+      // Log fallback event
+      try {
+        const apiBaseUrl = 'https://ilearn-api.nicoletterankin.workers.dev';
+        
+        await fetch(`${apiBaseUrl}/v1/monitor/log-fallback`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            lesson_id: `daily_lesson_${selectedAge}_${selectedTone}_${selectedLanguage}`,
+            error_type: 'fetch_failed',
+            error_message: err.message,
+            user_context: { age: selectedAge, tone: selectedTone, language: selectedLanguage }
+          })
+        });
+      } catch (logError) {
+        console.error('Failed to log fallback event:', logError);
+      }
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   useEffect(() => {
     if (selectedLesson) {
       generateLesson();
@@ -360,6 +417,14 @@ const AdvancedLessonGenerator = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-100 p-4">
+      {/* Navigation Bar */}
+      <nav className="flex justify-between items-center mb-8 p-4 bg-white rounded-lg shadow">
+        <div className="flex items-center space-x-6">
+          <Link href="/advanced-lesson"><span className="font-bold text-purple-700 text-lg cursor-pointer">Daily Lesson</span></Link>
+          <Link href="/learn-more-about-lessons"><span className="text-gray-700 hover:text-purple-600 cursor-pointer">How It Works</span></Link>
+          <Link href="/about"><span className="text-gray-700 hover:text-purple-600 cursor-pointer">About Us</span></Link>
+        </div>
+      </nav>
       <div className="max-w-7xl mx-auto">
         
         {/* Header */}
