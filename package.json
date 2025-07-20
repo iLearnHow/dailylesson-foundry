@@ -4,18 +4,17 @@
   "description": "DailyLesson.org Avatar Foundry - Self-hosted pipeline for generating avatar videos",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "export": "next build && next export",
-    "pre-generate-lessons": "ts-node scripts/pre_generate_lessons.ts"
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "ken-live": "npm run dev"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.844.0",
     "@cloudflare/workers-types": "^4.20250711.0",
-    "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0",
+    "@types/react": "^18.3.23",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^4.7.0",
     "compression": "^1.8.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.0",
@@ -26,10 +25,11 @@
     "micro": "^10.0.1",
     "next": "^14.2.30",
     "node-fetch": "^2.7.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "recharts": "^3.1.0",
-    "stripe": "^18.3.0"
+    "stripe": "^18.3.0",
+    "vite": "^7.0.5"
   },
   "devDependencies": {
     "@types/compression": "^1.8.1",
@@ -47,5 +47,18 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "build": "next build"
+  "build": "next build",
+  "main": "age_contextualizer.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iLearnHow/dailylesson-foundry.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/iLearnHow/dailylesson-foundry/issues"
+  },
+  "homepage": "https://github.com/iLearnHow/dailylesson-foundry#readme"
 }
